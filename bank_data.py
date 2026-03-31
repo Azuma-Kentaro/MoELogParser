@@ -1,110 +1,107 @@
 #!/usr/bin/env python3
+
 import csv
-import re
-import sys
 import datetime
+from dataclasses import dataclass
+import logging
+import re
 
-class DataEntry:
+logger = logging.getLogger(__name__)
+
+@dataclass(frozen=True)
+class BankDataEntry:
+    log_date: datetime.date
+    log_time: datetime.time
+    quest_name: str
+    finished: str
+    plus: int
+
+class BankEntryManager:
     def __init__(self):
-        pass
-
-class EntryManager:
-    def __init__(self):
-        self._manager = []
+        self._entries = []
 
     @property
-    def manager(self) -> list:
-        return self._manager
+    def entries(self):
+        return self._entries
 
-class BankDataEntry(DataEntry):
-    def __init__(self, log_date: str, log_time: str, quest_name: str, finished: str, plus: int):
-        super().__init__()
-        self._log_date = datetime.date.fromisoformat("20" + log_date.replace('/', '-'))
-        self._log_time = datetime.time.fromisoformat(log_time)
-        self._quest_name = quest_name
-        self._finished = finished
-        self._plus = plus
-
-    @property
-    def log_date(self) -> datetime.date:
-        return self._log_date
-
-    @property
-    def log_time(self) -> datetime.time:
-        return self._log_time
-
-    @property
-    def quest_name(self) -> str:
-        return self._quest_name
-
-    @property
-    def finished(self) -> str:
-        return self._finished
-
-    @property
-    def plus(self) -> int:
-        return self._plus
-
-class BankEntryManager(EntryManager):
-    def __init__(self):
-        super().__init__()
-
-    def update_entry(self, entry: BankDataEntry) -> bool:
-        for i in range(0, len(self._manager)):
-            e = self._manager[i]
-            if e.quest_name == entry.quest_name:
-                if e.log_time < entry.log_time:
-                    print("update {} {} -> {} : {} -> {}".format(e.quest_name, e.finished, entry.finished, e.log_time, entry.log_time))
-                    self._manager[i] = entry
-                    return True
-                else:
-                    return False
-            else:
+    def update_entry(self, entry):
+        """同じ所持枠拡張クエストに関するエントリが発生した場合に最新のエントリで置き換える"""
+        """既存エントリを更新した場合はTrueを返し、そうでない場合はFalseを返す"""
+        updated = False
+        for e in self._entries:
+            # クエスト名が違うので次のエントリに対する試行を開始する
+            if e.quest_name != entry.quest_name:
                 continue
-
-        self._manager.append(entry)
+            # 既存エントリの方が日付が新しい場合は最新のエントリで置き換える
+            if (e.log_date <= entry.log_date) and (e.log_time < entry.log_time):
+                logger.debug(f"update {e.quest_name} {e.finished} {e.log_date} {e.log_time} -> {entry.finished} {entry.log_date} {entry.log_time}")
+                e = entry
+                updated = True
+            # 同じクエスト名のエントリは重複しないので、置き換えたか否かに関係なくループを終了する
+            break
+        else:
+            # break以外でループが終わった場合は、同じクエスト名のエントリが存在しなかった場合なので
+            # 新しいエントリとして、リストに追加する
+            logger.debug(f"new {entry.quest_name} {entry.finished} {entry.log_date} {entry.log_time}")
+            self._entries.append(entry)
         return False
 
-class LogConverter:
+class BankLogConverter:
     def __init__(self, parser):
         self._parser = parser
 
-    def convert(self, logfile) -> list[DataEntry]:
+    def convert(self, log_list):
+        """ログファイルのテキストに対して所持枠拡張クエストの情報をエントリとして抽出する"""
+        # 作業過程で抽出したデータの管理はエントリマネージャに任せる
+        # 最終的な結果だけが必要なので、関数終了時に破棄されるようにローカル変数としている
         entry_manager = BankEntryManager()
-        for log in logfile:
+        for log in log_list:
+            # 所持枠拡張クエストのエントリとして抽出を試みる
             entry = self._parser.create_entry(log)
-            if entry is not None:
+            if entry:
+                # 新規エントリなら追加、重複なら最新のエントリだけ残す
                 entry_manager.update_entry(entry)
-        return entry_manager.manager
 
-class Parser:
-    def __init__(self, pattern: str):
-        self._pattern = re.compile(pattern)
+        # 最終的なエントリ情報を返して処理を終了する
+        return entry_manager.entries
 
-    def create_entry(self) -> DataEntry:
-        pass
-
-class BankParser(Parser):
+class BankParser:
     def __init__(self):
+        # 複数の行に対して同じ正規表現を適用するので、コンパイル済みのパターンを用いて効率化する。
+        # 日付部分は所持枠拡張以外にも共通のパターンなので、他の処理にも流用できる。
         date_pattern = r"^(?P<yymmdd>[0-9]{2}/[0-9]{2}/[0-9]{2}) (?P<hhmmss>[0-9]{2}:[0-9]{2}:[0-9]{2})"
+        # 所持枠拡張クエストのパターン
         quest_pattern = r": \[ (?P<finish>.) \] (?P<quest_name>.+) : \+ (?P<plus>[0-9])$"
-        super().__init__(''.join((date_pattern, quest_pattern)))
+        # どちらも同じ行に表示されるので、1つの行に対して処理するために結合する。
+        self._pattern = re.compile(''.join((date_pattern, quest_pattern)))
 
-    def create_entry(self, line: str) -> BankDataEntry:
+    def create_entry(self, line):
+        """与えられた行データが所持枠拡張クエストに関するものであれば、データ化したエントリ情報を返す"""
         m = self._pattern.match(line)
         if m is None:
             return None
-        return BankDataEntry(m.group("yymmdd"), m.group("hhmmss"), m.group("quest_name"), m.group("finish"), m.group("plus"))
 
+        log_date = datetime.date.fromisoformat("20" + m.group("yymmdd").replace('/', '-'))
+        log_time = datetime.time.fromisoformat(m.group("hhmmss"))
+        quest_name = m.group("quest_name")
+        finished = m.group("finish")
+        plus = m.group("plus")
+
+        return BankDataEntry(log_date, log_time, quest_name, finished, plus)
 
 if __name__ == "__main__":
-    input_filename = "mlog_25_03_15_0.txt"
-    converter = LogConverter(BankParser())
-    with open(input_filename, "r", encoding="utf-8") as logfile:
-        data = converter.convert(logfile)
+    # 動作確認のため、DEBUGレベルのログ出力を有効にする。
+    logging.basicConfig(level=logging.DEBUG)
 
+    # テスト用の入力ファイル
+    input_filename = "mlog_25_03_15_0.txt"
+    converter = BankLogConverter(BankParser())
+    with open(input_filename, "r", encoding="utf-8") as logfile:
+        bank_entries = converter.convert(logfile)
+
+    # テスト用の出力ファイル
     output_filename = "mlog_25_03_15_0.csv"
     with open(output_filename, "w", newline='') as csvfile:
         writer = csv.writer(csvfile)
-        for entry in data:
-            writer.writerow((entry.quest_name, entry.finished))
+        for entry in bank_entries:
+            writer.writerow((entry.quest_name, entry.finished, entry.log_date, entry.log_time))
