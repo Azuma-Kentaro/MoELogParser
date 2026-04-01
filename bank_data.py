@@ -1,20 +1,25 @@
 #!/usr/bin/env python3
 
+from collections import namedtuple
 import csv
+#from dataclasses import dataclass
 import datetime
-from dataclasses import dataclass
 import logging
 import re
 
 logger = logging.getLogger(__name__)
 
-@dataclass(frozen=True)
-class BankDataEntry:
-    log_date: datetime.date
-    log_time: datetime.time
-    quest_name: str
-    finished: str
-    plus: int
+# 日付で比較できるようにしたいならdataclassの方が適しているかもしれない
+#@dataclass(frozen=True)
+#class BankDataEntry:
+#    log_date: datetime.date
+#    log_time: datetime.time
+#    quest_name: str
+#    finished: str
+#    plus: int
+
+# カスタムメソッドを定義する予定はないことと、アンパック代入がそのまま使えるので名前付きタプルとして定義する
+BankDataEntry = namedtuple("BankDataEntry", ["log_date", "log_time", "quest_name", "finished", "plus"])
 
 class BankEntryManager:
     def __init__(self):
@@ -25,7 +30,8 @@ class BankEntryManager:
         return self._entries
 
     def update_entry(self, entry):
-        """同じ所持枠拡張クエストに関するエントリが発生した場合に最新のエントリで置き換える"""
+        """所持枠拡張クエストのクリア状況に関するエントリを更新する"""
+        """同じ所持枠拡張クエストに関するエントリが重複した場合には最新のエントリで置き換える"""
         """既存エントリを更新した場合はTrueを返し、そうでない場合はFalseを返す"""
         updated = False
         for e in self._entries:
@@ -89,18 +95,23 @@ class BankParser:
 
         return BankDataEntry(log_date, log_time, quest_name, finished, plus)
 
+def get_bank_data(filename):
+    converter = BankLogConverter(BankParser())
+    # ゲームの仕様で、生成するファイルのエンコーディングはShift JIS
+    with open(filename, "r", encoding="shift-jis") as logfile:
+        bank_entries = converter.convert(logfile)
+    return bank_entries
+
 if __name__ == "__main__":
     # 動作確認のため、DEBUGレベルのログ出力を有効にする。
     logging.basicConfig(level=logging.DEBUG)
 
     # テスト用の入力ファイル
-    input_filename = "mlog_25_03_15_0.txt"
-    converter = BankLogConverter(BankParser())
-    with open(input_filename, "r", encoding="utf-8") as logfile:
-        bank_entries = converter.convert(logfile)
+    input_filename = "mlog_26_04_01_0.txt"
+    bank_entries = get_bank_data(input_filename)
 
     # テスト用の出力ファイル
-    output_filename = "mlog_25_03_15_0.csv"
+    output_filename = "mlog_26_04_01_0.csv"
     with open(output_filename, "w", newline='') as csvfile:
         writer = csv.writer(csvfile)
         for entry in bank_entries:
