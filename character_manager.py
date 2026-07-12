@@ -10,12 +10,12 @@ MOE_DIRECTORY_DEFAULT_PATH = r"C:/MOE/Master of Epic"
 MOE_USERDATA_DEFAULT_PATH = r"userdata"
 
 #@dataclass(frozen=True)
-#class CharacterDirectroy:
+#class CharacterDirectory :
 #    filepath: Path
 #    server: str
 #    name: str
 
-CharacterDirectroy = namedtuple("CharacterDirectroy", ["filepath", "server", "name"])
+CharacterDirectory  = namedtuple("CharacterDirectory ", ["filepath", "server", "name"])
 
 class MoECharacterManager:
     def __init__(self, direcotry_path, userdata_path):
@@ -58,7 +58,7 @@ class MoECharacterManager:
             for subdir in p.iterdir():
                 (server, name) = MoECharacterManager.extract_character_server_and_name(subdir.name)
                 if server and name:
-                    self._character_list.append(CharacterDirectroy(subdir, server, name))
+                    self._character_list.append(CharacterDirectory (subdir, server, name))
 
         except Exception as e:
             logger.error(e)
