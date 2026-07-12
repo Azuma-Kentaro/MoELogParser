@@ -25,15 +25,25 @@ class MoECharacterManager:
 
     @staticmethod
     def normalize_name(name):
-        """フォルダ名に含まれる.を除去してキャラクター名に変換する"""
-        """ゲーム側の仕様で、英大文字が含まれるキャラクター名の場合は"""
-        """ディレクトリ名において英大文字の直後にドットがついている"""
+        """
+        フォルダ名に含まれる.を除去してキャラクター名に変換する
+        ゲーム側の仕様で、英大文字が含まれるキャラクター名の場合は
+        ディレクトリ名において英大文字の直後にドットがついている
+
+        >>> MoECharacterManager.normalize_name("T.est")
+        'Test'
+        """
         normalized = name.replace('.', '')
         return normalized
 
     @staticmethod
     def extract_character_server_and_name(directory_name):
-        """キャラクタ毎のディレクトリ名からサーバ名とキャラクター名を抽出する"""
+        """
+        キャラクタ毎のディレクトリ名からサーバ名とキャラクター名を抽出する
+
+        >>> MoECharacterManager.extract_character_server_and_name("DIAMOND_T.est_")
+        ('DIAMOND', 'Test')
+        """
         m = re.match(r"^(?P<server>(DIAMOND)|(EMERALD)|(PEARL))_(?P<name>.+)_", directory_name)
         if not m:
             return (None, None)
@@ -63,8 +73,5 @@ def get_character_list(direcotry_path=MOE_DIRECTORY_DEFAULT_PATH, userdata_path=
     return character_list
 
 if __name__ == "__main__":
-    # 動作確認のため、DEBUGレベルのログ出力を有効にする。
-    logging.basicConfig(level=logging.DEBUG)
-
-    character_list = get_character_list()
-    print(f"{character_list=}")
+    import doctest
+    doctest.testmod(verbose=True)
