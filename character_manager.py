@@ -15,12 +15,11 @@ MOE_USERDATA_DEFAULT_PATH = r"userdata"
 #    server: str
 #    name: str
 
-CharacterDirectory  = namedtuple("CharacterDirectory ", ["filepath", "server", "name"])
+CharacterDirectory  = namedtuple("CharacterDirectory", ["filepath", "server", "name"])
 
 class MoECharacterManager:
-    def __init__(self, direcotry_path, userdata_path):
-        self._character_list = []
-        self._directory_path = direcotry_path
+    def __init__(self, directory_path, userdata_path):
+        self._directory_path = directory_path
         self._userdata_path = userdata_path
 
     @staticmethod
@@ -52,23 +51,27 @@ class MoECharacterManager:
         return (server, name)
 
     def get_character_list(self):
+        cl = []
         try:
             p = Path(self._directory_path, self._userdata_path)
 
             for subdir in p.iterdir():
+                if not subdir.is_dir():
+                    continue
                 (server, name) = MoECharacterManager.extract_character_server_and_name(subdir.name)
                 if server and name:
-                    self._character_list.append(CharacterDirectory (subdir, server, name))
+                    cl.append(CharacterDirectory(subdir, server, name))
 
         except Exception as e:
+            # エラーは記録するが、処理を継続するために意図的に握りつぶす
             logger.error(e)
         finally:
             pass
 
-        return self._character_list
+        return cl
 
-def get_character_list(direcotry_path=MOE_DIRECTORY_DEFAULT_PATH, userdata_path=MOE_USERDATA_DEFAULT_PATH):
-    m = MoECharacterManager(direcotry_path, userdata_path)
+def get_character_list(directory_path=MOE_DIRECTORY_DEFAULT_PATH, userdata_path=MOE_USERDATA_DEFAULT_PATH):
+    m = MoECharacterManager(directory_path, userdata_path)
     character_list = m.get_character_list()
     return character_list
 
