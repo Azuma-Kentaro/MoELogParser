@@ -2,24 +2,20 @@
 
 from collections import namedtuple
 import csv
-#from dataclasses import dataclass
+from dataclasses import dataclass
 import datetime
 import logging
 import re
 
 logger = logging.getLogger(__name__)
 
-# 日付で比較できるようにしたいならdataclassの方が適しているかもしれない
-#@dataclass(frozen=True)
-#class BankDataEntry:
-#    log_date: datetime.date
-#    log_time: datetime.time
-#    quest_name: str
-#    finished: str
-#    plus: int
-
-# カスタムメソッドを定義する予定はないことと、アンパック代入がそのまま使えるので名前付きタプルとして定義する
-BankDataEntry = namedtuple("BankDataEntry", ["log_date", "log_time", "quest_name", "finished", "plus"])
+@dataclass(frozen=True, order=True)
+class BankDataEntry:
+    log_date: datetime.date
+    log_time: datetime.time
+    quest_name: str
+    finished: str
+    plus: int
 
 class BankEntryManager:
     def __init__(self):
@@ -39,7 +35,7 @@ class BankEntryManager:
             if e.quest_name != entry.quest_name:
                 continue
             # 既存エントリの方が日付が新しい場合は最新のエントリで置き換える
-            if (e.log_date <= entry.log_date) and (e.log_time < entry.log_time):
+            if e <= entry:
                 logger.debug(f"update {e.quest_name} {e.finished} {e.log_date} {e.log_time} -> {entry.finished} {entry.log_date} {entry.log_time}")
                 e = entry
                 updated = True
