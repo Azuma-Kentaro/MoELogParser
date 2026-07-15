@@ -99,9 +99,6 @@ def get_bank_data(filename):
     return bank_entries
 
 if __name__ == "__main__":
-    # 動作確認のため、DEBUGレベルのログ出力を有効にする。
-    logging.basicConfig(level=logging.DEBUG)
-
     # テスト用の入力ファイル
     input_filename = "mlog_26_04_01_0.txt"
     bank_entries = get_bank_data(input_filename)
