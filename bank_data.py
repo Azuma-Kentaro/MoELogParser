@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 
-from collections import namedtuple
 import csv
 from dataclasses import dataclass
 import datetime
@@ -15,7 +14,7 @@ class BankDataEntry:
     log_time: datetime.time
     quest_name: str
     finished: str
-    plus: int
+    plus: str
 
 class BankEntryManager:
     def __init__(self):
@@ -25,29 +24,29 @@ class BankEntryManager:
     def entries(self):
         return self._entries
 
-    def update_entry(self, entry):
+    def update_entry(self, new_entry):
         """
         所持枠拡張クエストのクリア状況に関するエントリを更新する
         同じ所持枠拡張クエストに関するエントリが重複した場合には最新のエントリで置き換える
         既存エントリを更新した場合はTrueを返し、そうでない場合はFalseを返す
         """
         updated = False
-        for e in self._entries:
+        for i, existing_entry in enumerate(self._entries):
             # クエスト名が違うので次のエントリに対する試行を開始する
-            if e.quest_name != entry.quest_name:
+            if existing_entry.quest_name != new_entry.quest_name:
                 continue
             # 既存エントリの方が日付が新しい場合は最新のエントリで置き換える
-            if e <= entry:
-                logger.debug(f"update {e.quest_name} {e.finished} {e.log_date} {e.log_time} -> {entry.finished} {entry.log_date} {entry.log_time}")
-                e = entry
+            if existing_entry <= new_entry:
+                logger.debug(f"update {existing_entry.quest_name} {existing_entry.finished} {existing_entry.log_date} {existing_entry.log_time} -> {new_entry.finished} {new_entry.log_date} {new_entry.log_time}")
+                self._entries[i] = new_entry
                 updated = True
             # 同じクエスト名のエントリは重複しないので、置き換えたか否かに関係なくループを終了する
             break
         else:
             # break以外でループが終わった場合は、同じクエスト名のエントリが存在しなかった場合なので
             # 新しいエントリとして、リストに追加する
-            logger.debug(f"new {entry.quest_name} {entry.finished} {entry.log_date} {entry.log_time}")
-            self._entries.append(entry)
+            logger.debug(f"new {new_entry.quest_name} {new_entry.finished} {new_entry.log_date} {new_entry.log_time}")
+            self._entries.append(new_entry)
         return updated
 
 class BankLogConverter:
