@@ -46,7 +46,7 @@ class BankEntryManager:
             # 新しいエントリとして、リストに追加する
             logger.debug(f"new {entry.quest_name} {entry.finished} {entry.log_date} {entry.log_time}")
             self._entries.append(entry)
-        return False
+        return updated
 
 class BankLogConverter:
     def __init__(self, parser):
