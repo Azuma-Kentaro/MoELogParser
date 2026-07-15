@@ -26,9 +26,11 @@ class BankEntryManager:
         return self._entries
 
     def update_entry(self, entry):
-        """所持枠拡張クエストのクリア状況に関するエントリを更新する"""
-        """同じ所持枠拡張クエストに関するエントリが重複した場合には最新のエントリで置き換える"""
-        """既存エントリを更新した場合はTrueを返し、そうでない場合はFalseを返す"""
+        """
+        所持枠拡張クエストのクリア状況に関するエントリを更新する
+        同じ所持枠拡張クエストに関するエントリが重複した場合には最新のエントリで置き換える
+        既存エントリを更新した場合はTrueを返し、そうでない場合はFalseを返す
+        """
         updated = False
         for e in self._entries:
             # クエスト名が違うので次のエントリに対する試行を開始する
@@ -53,7 +55,9 @@ class BankLogConverter:
         self._parser = parser
 
     def convert(self, log_list):
-        """ログファイルのテキストに対して所持枠拡張クエストの情報をエントリとして抽出する"""
+        """
+        ログファイルのテキストに対して所持枠拡張クエストの情報をエントリとして抽出する
+        """
         # 作業過程で抽出したデータの管理はエントリマネージャに任せる
         # 最終的な結果だけが必要なので、関数終了時に破棄されるようにローカル変数としている
         entry_manager = BankEntryManager()
@@ -78,7 +82,9 @@ class BankParser:
         self._pattern = re.compile(''.join((date_pattern, quest_pattern)))
 
     def create_entry(self, line):
-        """与えられた行データが所持枠拡張クエストに関するものであれば、データ化したエントリ情報を返す"""
+        """
+        与えられた行データが所持枠拡張クエストに関するものであれば、データ化したエントリ情報を返す
+        """
         m = self._pattern.match(line)
         if m is None:
             return None
